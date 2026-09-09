@@ -1,12 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import Navigation from './components/Navigation';
 import PlanInput from './components/PlanInput';
 import ModeSelector, { MODES, MODE_CONFIG } from './components/ModeSelector';
-import AskNorthstar from './components/AskNorthstar';
 import ResultsShell from './components/ResultsShell';
 import AtmosphericBackground from './components/AtmosphericBackground';
 import IntelligenceScanning from './components/IntelligenceScanning';
-import { ArrowRight, Orbit } from 'lucide-react';
+import { ArrowRight, Check, Orbit } from 'lucide-react';
 
 const analyzeWithNorthstar = async (
   mode,
@@ -20,7 +19,6 @@ const analyzeWithNorthstar = async (
     [MODES.ALTERNATIVES]: 'EXPLORE ALTERNATIVES',
     [MODES.STRESSTEST]: 'STRESS TEST MY PLAN',
   };
-
 
   const backendMode = backendModeMap[mode];
 
@@ -285,7 +283,6 @@ const analyzeWithNorthstar = async (
         }
 
         if (item && typeof item === 'object') {
-          // Try all plausible backend fields.
           const rawText =
             item.issue ??
             item.action ??
@@ -298,8 +295,6 @@ const analyzeWithNorthstar = async (
             item.details ??
             item.explanation ??
             item.text ??
-            item.content ??
-            item.value ??
             '';
 
           const cleaned = String(rawText)
@@ -309,50 +304,39 @@ const analyzeWithNorthstar = async (
             )
             .trim();
 
-          const rawLabel =
-            item.label ??
-            item.rank_label ??
-            item.rankLabel ??
-            item.position ??
-            defaultLabel;
+          const whyItMatters =
+            item.why_it_matters ??
+            item.whyItMatters ??
+            item.reason ??
+            item.rationale ??
+            item.justification ??
+            '';
 
-          let label = rawLabel;
-
-          if (typeof rawLabel === 'number') {
-            label =
-              ['FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH'][
-              rawLabel - 1
-              ] || defaultLabel;
-          }
+          const whatShouldHappenNext =
+            item.what_should_happen_next ??
+            item.whatShouldHappenNext ??
+            item.next_step ??
+            item.nextStep ??
+            item.action ??
+            '';
 
           return {
-            rank:
-              item.rank != null
-                ? item.rank
-                : index + 1,
-
+            rank: index + 1,
             label:
-              String(label)
-                .replace(/:$/, '')
-                .trim() || defaultLabel,
-
+              item.rank_label ||
+              item.label ||
+              defaultLabel,
             title:
+              item.title ||
               cleaned ||
               `Priority ${index + 1}`,
-
             action:
+              item.action ||
               cleaned ||
               `Priority ${index + 1}`,
-
-            whyItMatters:
-              item.why_it_matters ||
-              item.whyItMatters ||
-              '',
-
+            whyItMatters: whyItMatters || '',
             whatShouldHappenNext:
-              item.what_should_happen_next ||
-              item.whatShouldHappenNext ||
-              '',
+              whatShouldHappenNext || '',
           };
         }
 
@@ -363,189 +347,150 @@ const analyzeWithNorthstar = async (
           action: `Priority ${index + 1}`,
         };
       }),
-
-      dependencyChain: (
-        raw.dependencies ||
-        raw.dependency_chain ||
-        raw.dependencyChain ||
-        []
-      ).map((node, index) => {
-        if (typeof node === 'string') {
-          return {
-            nodeClass: 'dependency-node',
-            type: `STEP ${index + 1}`,
-            label: node,
-          };
-        }
-
-        return {
-          nodeClass:
-            node.nodeClass ||
-            node.node_class ||
-            node.category ||
-            'dependency-node',
-
-          type:
-            node.type ||
-            node.node_type ||
-            node.kind ||
-            `STEP ${index + 1}`,
-
-          label:
-            node.label ||
-            node.name ||
-            node.description ||
-            node.dependency ||
-            node.title ||
-            `Dependency ${index + 1}`,
-        };
-      }),
     };
   }
 
   if (mode === MODES.ALTERNATIVES) {
     return {
-      inputType: raw.input_type,
-      underlyingGoal: raw.underlying_goal,
-
-      originalApproach:
-        raw.current_approach ||
+      inputType:
+        raw.input_type ||
+        raw.inputType ||
         '',
 
-      alternatives: (raw.alternatives || []).map((alt, index) => ({
+      underlyingGoal:
+        raw.underlying_goal ||
+        raw.goal ||
+        raw.underlyingGoal ||
+        userInput,
+
+      originalApproach: {
+        summary:
+          raw.original_approach?.summary ||
+          raw.current_approach ||
+          raw.currentApproach ||
+          '',
+        characterisation:
+          raw.original_approach?.characterisation ||
+          raw.original_approach?.characterization ||
+          raw.current_approach ||
+          'Identified baseline plan',
+      },
+
+      alternatives: (
+        raw.alternative_pathways ||
+        raw.alternatives ||
+        []
+      ).map((item, index) => ({
         id: index + 1,
-
         title:
-          alt.name ||
+          item.pathway_name ||
+          item.title ||
+          item.name ||
           `Alternative ${index + 1}`,
-
         description:
-          alt.approach ||
-          alt.how_it_achieves_goal ||
+          item.description ||
+          item.overview ||
           '',
-
         tradeoffs:
-          Array.isArray(alt.trade_offs)
-            ? alt.trade_offs
-              .map((tradeoff) => {
-                if (typeof tradeoff === 'string') {
-                  return tradeoff;
-                }
-
-                if (
-                  tradeoff &&
-                  typeof tradeoff === 'object'
-                ) {
-                  const gains =
-                    tradeoff.gains ||
-                    tradeoff.Gains;
-
-                  const givesUp =
-                    tradeoff.gives_up ||
-                    tradeoff.givesUp ||
-                    tradeoff['gives up'];
-
-                  if (gains && givesUp) {
-                    return `Gains: ${gains} • Gives up: ${givesUp}`;
-                  }
-
-                  return Object.values(tradeoff)
-                    .filter(Boolean)
-                    .join(' • ');
-                }
-
-                return String(tradeoff);
-              })
-              .join(' ')
-            : typeof alt.trade_offs === 'string'
-              ? alt.trade_offs
-              : '',
-
-        bestWhen:
-          alt.best_suited_when ||
+          item.trade_off ||
+          item.tradeoffs ||
+          item.trade_offs ||
           '',
-
-        tags: [
-          ...(alt.dependencies?.length
-            ? ['Dependency aware']
-            : []),
-          ...(alt.risks?.length
-            ? ['Risk considered']
-            : []),
-        ],
+        bestWhen:
+          item.best_when ||
+          item.bestWhen ||
+          '',
+        tags: Array.isArray(item.tags)
+          ? item.tags
+          : [item.tag].filter(Boolean),
       })),
-
-      comparison:
-        raw.comparison ||
-        [],
-
-      assumptions:
-        raw.assumptions ||
-        [],
     };
   }
 
   if (mode === MODES.STRESSTEST) {
     return {
-      inputType: raw.input_type || raw.inputType || '',
-      underlyingGoal: raw.underlying_goal || raw.goal || '',
-      currentApproach: raw.current_approach || raw.currentApproach || '',
-      resilienceScore: raw.resilience_score ?? null,
-      resilienceLabel: raw.resilience_label || 'EARLY-STAGE INTENTION',
+      inputType:
+        raw.input_type ||
+        raw.inputType ||
+        '',
 
-      criticalFailurePoints: Array.isArray(raw.critical_failure_points)
+      underlyingGoal:
+        raw.underlying_goal ||
+        raw.goal ||
+        raw.underlyingGoal ||
+        userInput,
+
+      currentApproach:
+        raw.current_approach ||
+        raw.currentApproach ||
+        '',
+
+      resilienceScore:
+        typeof raw.resilience_score === 'number'
+          ? raw.resilience_score
+          : typeof raw.resilienceScore === 'number'
+            ? raw.resilienceScore
+            : null,
+
+      resilienceLabel:
+        raw.resilience_label ||
+        raw.resilienceLabel ||
+        '',
+
+      criticalFailurePoints: Array.isArray(
+        raw.critical_failure_points
+      )
         ? raw.critical_failure_points
-        : [],
-
-      criticalUnknowns: Array.isArray(raw.critical_unknowns)
-        ? raw.critical_unknowns
-        : [],
+        : Array.isArray(raw.criticalFailurePoints)
+          ? raw.criticalFailurePoints
+          : [],
 
       scenarios: Array.isArray(raw.scenarios)
-        ? raw.scenarios.map((scenario, index) => {
-          const cascade = Array.isArray(scenario?.why_it_could_happen)
-            ? scenario.why_it_could_happen
-            : typeof scenario?.why_it_could_happen === 'string' &&
-              scenario.why_it_could_happen.trim()
-              ? [scenario.why_it_could_happen]
-              : Array.isArray(scenario?.cascade)
-                ? scenario.cascade
-                : [];
+        ? raw.scenarios.map((scenario) => {
+          const rawSeverity =
+            typeof scenario?.severity === 'string'
+              ? scenario.severity.trim().toLowerCase()
+              : '';
+
+          const severity =
+            rawSeverity === 'high' ||
+              rawSeverity === 'critical'
+              ? 'high'
+              : rawSeverity === 'low'
+                ? 'low'
+                : 'medium';
+
+          const cascade = Array.isArray(
+            scenario?.cascade
+          )
+            ? scenario.cascade
+            : typeof scenario?.cascade === 'string'
+              ? scenario.cascade
+                .split('->')
+                .map((step) => step.trim())
+                .filter(Boolean)
+              : [];
 
           const earlyWarning = Array.isArray(
-            scenario?.early_warning_signs
+            scenario?.early_warning_signals
           )
-            ? scenario.early_warning_signs
-            : typeof scenario?.early_warning_signs === 'string' &&
-              scenario.early_warning_signs.trim()
-              ? [scenario.early_warning_signs]
+            ? scenario.early_warning_signals
+            : scenario?.early_warning_signal
+              ? [scenario.early_warning_signal]
               : [];
 
           const preventiveActions = Array.isArray(
             scenario?.preventive_actions
           )
             ? scenario.preventive_actions
-            : scenario?.preventive_actions
-              ? [scenario.preventive_actions]
-              : [];
-
-          const rawSeverity = String(
-            scenario?.severity ||
-            scenario?.risk_level ||
-            'medium'
-          ).toLowerCase();
-
-          const severity = ['high', 'medium', 'low'].includes(rawSeverity)
-            ? rawSeverity
-            : 'medium';
+            : [];
 
           return {
-            id: index + 1,
-
             title:
+              scenario?.breakdown_point ||
               scenario?.title ||
-              scenario?.name ||
-              `Failure scenario ${index + 1}`,
+              scenario?.failure_mode ||
+              'Failure scenario',
 
             severity,
 
@@ -745,66 +690,124 @@ export default function App() {
     assumptions: [],
   });
   const [isClarificationSubmitting, setIsClarificationSubmitting] = useState(false);
+
+  // Deliberate scenario adoption/recalculation state
+  const [adoptionState, setAdoptionState] = useState({
+    isAdopting: false,
+    step: null, // 'applying' | 'recalculating'
+  });
+
+  const sessionContextRef = useRef(sessionContext);
+  sessionContextRef.current = sessionContext;
+
+  const modeToGenerateRef = useRef(null);
+  const skipClarificationRef = useRef(false);
+  const isSwitchingFromResultsRef = useRef(false);
+
   const handleLaunchAnalysis = useCallback(() => {
     if (!planText.trim() && !attachedFile) return;
 
+    modeToGenerateRef.current = activeMode;
+    skipClarificationRef.current = false;
+    isSwitchingFromResultsRef.current = false;
     setScanningForMode(activeMode);
     setSkipClarification(false);
     setViewState('scanning');
   }, [planText, attachedFile, activeMode]);
 
   const handleScanningComplete = useCallback(async () => {
-    const modeToGenerate =
-      scanningForMode || activeMode;
+    const targetMode =
+      modeToGenerateRef.current || scanningForMode || activeMode;
+    const shouldSkipClarification =
+      skipClarificationRef.current || skipClarification;
+    const fromResults = isSwitchingFromResultsRef.current;
+
+    // Reset temporary dispatch flags
+    modeToGenerateRef.current = null;
+    skipClarificationRef.current = false;
+    isSwitchingFromResultsRef.current = false;
 
     try {
       const analysisData = await analyzeWithNorthstar(
-        modeToGenerate,
+        targetMode,
         planText,
         attachedFile,
-        skipClarification ? "provide" : null,
-        sessionContext
+        shouldSkipClarification ? 'provide' : null,
+        sessionContextRef.current
       );
 
       if (analysisData?.clarificationNeeded) {
+        // If user is switching modes from Results, bypass clarification so we NEVER drop to Home
+        if (fromResults) {
+          const bypassData = await analyzeWithNorthstar(
+            targetMode,
+            planText,
+            attachedFile,
+            'provide',
+            sessionContextRef.current
+          );
+
+          setAnalysesState((prev) => ({
+            ...prev,
+            [targetMode]: {
+              version: planVersion,
+              timestamp: new Date().toISOString(),
+              mode: targetMode,
+              data: bypassData,
+            },
+          }));
+
+          setActiveMode(targetMode);
+          setScanningForMode(null);
+          setViewState('results');
+          setSkipClarification(false);
+          return;
+        }
+
         setClarification({
-          mode: modeToGenerate,
+          mode: targetMode,
           questions: analysisData.clarificationQuestions || [],
           intake: analysisData.intake || null,
         });
 
-        setClarificationAnswers({});
-        setClarificationDecisions({});
-        setScanningForMode(null);
-        setViewState("input");
+        // Initialize all questions to "assume" by default for instant readiness
+        const defaultDecisions = {};
+        (analysisData.clarificationQuestions || []).forEach((_, idx) => {
+          defaultDecisions[idx] = 'assume';
+        });
 
+        setClarificationDecisions(defaultDecisions);
+        setClarificationAnswers({});
+        setScanningForMode(null);
+        setViewState('input');
         return;
       }
 
       setAnalysesState((prev) => ({
         ...prev,
-        [modeToGenerate]: {
+        [targetMode]: {
           version: planVersion,
           timestamp: new Date().toISOString(),
-          mode: modeToGenerate,
+          mode: targetMode,
           data: analysisData,
         },
       }));
 
-      setActiveMode(modeToGenerate);
+      setActiveMode(targetMode);
       setScanningForMode(null);
-      setViewState("results");
+      setViewState('results');
       setSkipClarification(false);
     } catch (error) {
-      console.error(
-        "NORTHSTAR analysis failed:",
-        error
-      );
-
+      console.error('NORTHSTAR analysis failed:', error);
       alert(error.message);
       setSkipClarification(false);
       setScanningForMode(null);
-      setViewState("input");
+      // If switching from results or if we already have analyses, stay in results!
+      if (fromResults || Object.keys(analysesState).length > 0) {
+        setViewState('results');
+      } else {
+        setViewState('input');
+      }
     }
   }, [
     scanningForMode,
@@ -813,58 +816,44 @@ export default function App() {
     attachedFile,
     planVersion,
     skipClarification,
-    sessionContext,
+    analysesState,
   ]);
 
-  const handleResultsModeSwitch =
-    useCallback(
-      (mode) => {
-        const existing =
-          analysesState[mode];
+  const handleResultsModeSwitch = useCallback(
+    (mode) => {
+      const existing = analysesState[mode];
 
-        const isCurrentVersion =
-          existing &&
-          existing.version === planVersion;
+      const isCurrentVersion =
+        existing && existing.version === planVersion;
 
-        if (isCurrentVersion) {
-          setActiveMode(mode);
-        } else {
-          setSkipClarification(true);
-          setScanningForMode(mode);
-          setActiveMode(mode);
-          setViewState('scanning');
-        }
-      },
-      [analysesState, planVersion]
-    );
+      if (isCurrentVersion) {
+        setActiveMode(mode);
+      } else {
+        modeToGenerateRef.current = mode;
+        skipClarificationRef.current = true;
+        isSwitchingFromResultsRef.current = true;
+        setSkipClarification(true);
+        setScanningForMode(mode);
+        setActiveMode(mode);
+        setViewState('scanning');
+      }
+    },
+    [analysesState, planVersion]
+  );
 
-  const handleClarificationContinue = useCallback(() => {
-    const decisions = {};
-
-    (clarification?.questions || []).forEach((_, index) => {
-      decisions[index] = "assume";
-    });
-
-    setClarificationDecisions(decisions);
-    setClarification(null);
-    setClarificationAnswers({});
-  }, [clarification]);
-
-
+  // Submit clarification: transitions immediately to scanning screen!
   const handleClarificationProvide = useCallback(async () => {
     if (!clarification) return;
 
     const questions = clarification.questions || [];
-
     const providedFacts = [];
     const assumptions = [];
 
     questions.forEach((question, index) => {
-      const decision = clarificationDecisions[index];
-      const answer =
-        clarificationAnswers[index]?.trim() || "";
+      const decision = clarificationDecisions[index] || 'assume';
+      const answer = clarificationAnswers[index]?.trim() || '';
 
-      if (decision === "provide" && answer) {
+      if (decision === 'provide' && answer) {
         providedFacts.push(
           `- ${question.question}\n  User-provided answer: ${answer}`
         );
@@ -880,272 +869,155 @@ export default function App() {
       assumptions,
     };
 
+    const modeToGenerate = clarification.mode || activeMode;
+    modeToGenerateRef.current = modeToGenerate;
+    skipClarificationRef.current = true;
+    isSwitchingFromResultsRef.current = false;
+
+    // Immediately dismiss clarification dialog and transition to scanning state!
+    sessionContextRef.current = nextSessionContext;
     setSessionContext(nextSessionContext);
-    setIsClarificationSubmitting(true);
-
-    try {
-      const modeToGenerate =
-        clarification.mode || activeMode;
-
-      const analysisData =
-        await analyzeWithNorthstar(
-          modeToGenerate,
-          planText,
-          attachedFile,
-          "provide",
-          nextSessionContext
-        );
-
-      if (analysisData?.clarificationNeeded) {
-        setClarification({
-          mode: modeToGenerate,
-          questions:
-            analysisData.clarificationQuestions || [],
-          intake:
-            analysisData.intake || null,
-        });
-
-        return;
-      }
-
-      setAnalysesState((prev) => ({
-        ...prev,
-        [modeToGenerate]: {
-          version: planVersion,
-          timestamp: new Date().toISOString(),
-          mode: modeToGenerate,
-          data: analysisData,
-        },
-      }));
-
-      setClarification(null);
-      setClarificationAnswers({});
-      setClarificationDecisions({});
-      setViewState("results");
-    } catch (error) {
-      console.error(
-        "Clarification submission failed:",
-        error
-      );
-
-      alert(error.message);
-    } finally {
-      setIsClarificationSubmitting(false);
-    }
+    setClarification(null);
+    setClarificationAnswers({});
+    setClarificationDecisions({});
+    setScanningForMode(modeToGenerate);
+    setSkipClarification(true);
+    setViewState('scanning');
   }, [
     clarification,
     clarificationAnswers,
     clarificationDecisions,
-    planText,
-    attachedFile,
     activeMode,
-    planVersion,
   ]);
+
   // ────────────────────────────────────────────────────────────────────────
   // ASK NORTHSTAR
   // ────────────────────────────────────────────────────────────────────────
 
-  const handleAskNorthstar =
-    useCallback(
-      async (query) => {
-        if (
-          !query?.trim() ||
-          isAskProcessing
-        ) {
+  const handleAskNorthstar = useCallback(
+    async (query) => {
+      if (!query?.trim() || isAskProcessing) {
+        return;
+      }
+
+      setIsAskProcessing(true);
+      setAskMockResponse('');
+
+      try {
+        const currentAnalysis =
+          analysesState[activeMode]?.version === planVersion
+            ? analysesState[activeMode].data
+            : null;
+
+        const result = await askNorthstar({
+          mode: activeMode,
+          userInput: planText,
+          query: query.trim(),
+          analysis: currentAnalysis,
+          planVersion,
+          sessionContext: sessionContextRef.current,
+        });
+
+        // ─────────────────────────────
+        // QUESTION
+        // ─────────────────────────────
+        if (result.request_type === 'QUESTION') {
+          setAskMockResponse(result.answer);
           return;
         }
 
-        setIsAskProcessing(true);
-        setAskMockResponse('');
-
-        try {
-          const currentAnalysis =
-            analysesState[activeMode]?.version ===
-              planVersion
-              ? analysesState[activeMode].data
-              : null;
-
-          const result =
-            await askNorthstar({
-              mode: activeMode,
-              userInput: planText,
-              query: query.trim(),
-              analysis: currentAnalysis,
-              planVersion,
-              sessionContext,
-            });
-
-          // ─────────────────────────────
-          // QUESTION
-          // ─────────────────────────────
-
-          if (
-            result.request_type ===
-            'QUESTION'
-          ) {
-            setAskMockResponse(
-              result.answer
-            );
-
-            return;
-          }
-
-          // ─────────────────────────────
-          // WHAT IF
-          // ─────────────────────────────
-
-          if (
-            result.request_type ===
-            'WHAT_IF'
-          ) {
-            setActiveScenario({
-              type: 'WHAT_IF',
-
-              query: query.trim(),
-
-              timestamp:
-                new Date().toISOString(),
-
-              title:
-                result.scenario?.title ||
-                'Scenario exploration',
-
-              impact:
-                result.scenario?.impact ||
-                '',
-
-              dependencies:
-                result.scenario?.dependencies ||
-                [],
-
-              risks:
-                result.scenario?.risks ||
-                [],
-
-              tradeoffs:
-                result.scenario?.tradeoffs ||
-                [],
-
-              answer:
-                result.answer ||
-                '',
-            });
-
-            setAskMockResponse(
-              result.answer ||
-              'Scenario evaluated. The canonical plan remains unchanged.'
-            );
-
-            if (
-              viewState !== 'results'
-            ) {
-              setViewState('results');
-            }
-
-            return;
-          }
-
-          // ─────────────────────────────
-          // PLAN CHANGE
-          // ─────────────────────────────
-
-          if (
-            result.request_type ===
-            'PLAN_CHANGE'
-          ) {
-            if (
-              result.should_update_plan
-            ) {
-              setActiveScenario({
-                type: 'PLAN_CHANGE',
-
-                query: query.trim(),
-
-                timestamp:
-                  new Date().toISOString(),
-
-                title:
-                  'Proposed plan change',
-
-                impact:
-                  result.answer ||
-                  '',
-
-                dependencies: [],
-
-                risks: [],
-
-                tradeoffs: [],
-
-                proposedChanges:
-                  result.proposed_changes ||
-                  [],
-
-                adoptionMessage:
-                  result.adoption_message ||
-                  '',
-
-                answer:
-                  result.answer ||
-                  '',
-              });
-
-              setAskMockResponse(
-                result.adoption_message ||
-                'NORTHSTAR has proposed a change to your plan. Review it before adopting.'
-              );
-
-              if (
-                viewState !==
-                'results'
-              ) {
-                setViewState(
-                  'results'
-                );
-              }
-            } else {
-              setAskMockResponse(
-                result.answer
-              );
-            }
-
-            return;
-          }
-
-          throw new Error(
-            `Unknown NORTHSTAR request type: ${result.request_type}`
-          );
-        } catch (error) {
-          console.error(
-            'NORTHSTAR ASK failed:',
-            error
-          );
+        // ─────────────────────────────
+        // WHAT IF
+        // ─────────────────────────────
+        if (result.request_type === 'WHAT_IF') {
+          setActiveScenario({
+            type: 'WHAT_IF',
+            query: query.trim(),
+            timestamp: new Date().toISOString(),
+            title: result.scenario?.title || 'Scenario exploration',
+            impact: result.scenario?.impact || '',
+            dependencies: result.scenario?.dependencies || [],
+            risks: result.scenario?.risks || [],
+            tradeoffs: result.scenario?.tradeoffs || [],
+            answer: result.answer || '',
+          });
 
           setAskMockResponse(
-            `NORTHSTAR couldn't process that request. ${error.message}`
+            result.answer ||
+              'Scenario evaluated. The canonical plan remains unchanged.'
           );
-        } finally {
-          setIsAskProcessing(false);
+
+          if (viewState !== 'results') {
+            setViewState('results');
+          }
+
+          return;
         }
-      },
-      [
-        isAskProcessing,
-        analysesState,
-        activeMode,
-        planVersion,
-        planText,
-        viewState,
-        sessionContext
-      ]
-    );
+
+        // ─────────────────────────────
+        // PLAN CHANGE
+        // ─────────────────────────────
+        if (result.request_type === 'PLAN_CHANGE') {
+          if (result.should_update_plan) {
+            setActiveScenario({
+              type: 'PLAN_CHANGE',
+              query: query.trim(),
+              timestamp: new Date().toISOString(),
+              title: 'Proposed plan change',
+              impact: result.answer || '',
+              dependencies: [],
+              risks: [],
+              tradeoffs: [],
+              proposedChanges: result.proposed_changes || [],
+              adoptionMessage: result.adoption_message || '',
+              answer: result.answer || '',
+            });
+
+            setAskMockResponse(
+              result.adoption_message ||
+                'NORTHSTAR has proposed a change to your plan. Review it before adopting.'
+            );
+
+            if (viewState !== 'results') {
+              setViewState('results');
+            }
+          } else {
+            setAskMockResponse(result.answer);
+          }
+
+          return;
+        }
+
+        throw new Error(
+          `Unknown NORTHSTAR request type: ${result.request_type}`
+        );
+      } catch (error) {
+        console.error('NORTHSTAR ASK failed:', error);
+        setAskMockResponse(
+          `NORTHSTAR couldn't process that request. ${error.message}`
+        );
+      } finally {
+        setIsAskProcessing(false);
+      }
+    },
+    [
+      isAskProcessing,
+      analysesState,
+      activeMode,
+      planVersion,
+      planText,
+      viewState,
+    ]
+  );
 
   // ────────────────────────────────────────────────────────────────────────
-  // ADOPT SCENARIO
+  // ADOPT SCENARIO (Smooth Recalculation Flow)
   // ────────────────────────────────────────────────────────────────────────
 
   const handleAdoptScenario = async () => {
     if (!activeScenario) return;
 
+    setAdoptionState({ isAdopting: true, step: 'applying' });
     setIsAskProcessing(true);
 
     try {
@@ -1156,141 +1028,114 @@ export default function App() {
         requestType: activeScenario.type,
         query: activeScenario.query,
         scenario: activeScenario,
-        proposedChanges:
-          activeScenario.proposedChanges || [],
+        proposedChanges: activeScenario.proposedChanges || [],
       });
 
-      console.log(
-        'NORTHSTAR ADOPTION RESULT:',
-        result
-      );
+      console.log('NORTHSTAR ADOPTION RESULT:', result);
 
-      const updatedPlan =
-        result.updated_plan;
-
+      const updatedPlan = result.updated_plan;
       if (!updatedPlan) {
-        throw new Error(
-          'Adoption returned no updated plan.'
-        );
+        throw new Error('Adoption returned no updated plan.');
       }
 
-      const nextVersion = (
-        parseFloat(planVersion) + 0.1
-      ).toFixed(1);
+      const nextVersion = (parseFloat(planVersion) + 0.1).toFixed(1);
 
-      // ─────────────────────────────
-      // 1. UPDATE CANONICAL PLAN
-      // ─────────────────────────────
+      // Transition step to recalculating
+      setAdoptionState({ isAdopting: true, step: 'recalculating' });
 
-      setPlanText(updatedPlan);
-      setPlanVersion(nextVersion);
-
-      // ─────────────────────────────
-      // 2. REMOVE TEMPORARY SCENARIO
-      // ─────────────────────────────
-
-      setActiveScenario(null);
-      setAskMockResponse('');
-
-      // ─────────────────────────────
-      // 3. RE-ANALYZE UPDATED PLAN
-      // ─────────────────────────────
-
-      const refreshedAnalysis =
-        await analyzeWithNorthstar(
-          activeMode,
-          updatedPlan,
-          null,
-          "provide",
-          sessionContext
-        );
+      // Run fresh analysis on updated plan with current session context
+      const refreshedAnalysis = await analyzeWithNorthstar(
+        activeMode,
+        updatedPlan,
+        null,
+        'provide',
+        sessionContextRef.current
+      );
 
       if (refreshedAnalysis?.clarificationNeeded) {
         throw new Error(
-          "NORTHSTAR requested clarification while refreshing the adopted plan."
+          'NORTHSTAR requested clarification while refreshing the adopted plan.'
         );
       }
 
-      // ─────────────────────────────
-      // 4. STORE FRESH ANALYSIS
-      // ─────────────────────────────
+      // ATOMICALLY apply everything together to avoid any stale-state flash!
+      setPlanText(updatedPlan);
+      setPlanVersion(nextVersion);
+      setActiveScenario(null);
+      setAskMockResponse('');
 
-      setAnalysesState(prev => ({
+      setAnalysesState((prev) => ({
         ...prev,
         [activeMode]: {
           version: nextVersion,
-          timestamp:
-            new Date().toISOString(),
+          timestamp: new Date().toISOString(),
           mode: activeMode,
           data: refreshedAnalysis,
         },
       }));
-
     } catch (error) {
-      console.error(
-        'NORTHSTAR ADOPTION ERROR:',
-        error
-      );
-
+      console.error('NORTHSTAR ADOPTION ERROR:', error);
       setAskMockResponse(
-        'NORTHSTAR could not apply that change. Your current plan remains unchanged.'
+        `NORTHSTAR could not apply that change: ${error.message}. Your current plan remains unchanged.`
       );
     } finally {
       setIsAskProcessing(false);
+      setAdoptionState({ isAdopting: false, step: null });
     }
   };
 
-  const handleDismissScenario =
-    useCallback(() => {
-      setActiveScenario(null);
-      setAskMockResponse('');
-    }, []);
+  const handleDismissScenario = useCallback(() => {
+    setActiveScenario(null);
+    setAskMockResponse('');
+  }, []);
 
   // ────────────────────────────────────────────────────────────────────────
   // RESET
   // ────────────────────────────────────────────────────────────────────────
 
-  const handleReset =
-    useCallback(() => {
-      setViewState('input');
-      setAttachedFile(null);
-      setPlanText('');
-      setSkipClarification(false);
-      setSessionContext({
-        userFacts: [],
-        assumptions: [],
-      });
-      setPlanVersion('1.0');
-      setAnalysesState({});
-      setActiveScenario(null);
-      setScanningForMode(null);
-      setActiveMode(MODES.IMPROVE);
-      setAskMockResponse('');
-      setIsAskProcessing(false);
-      setClarification(null);
-      setClarificationAnswers({});
-      setClarificationDecisions({});
-      setIsClarificationSubmitting(false);
-    }, []);
-
-  const currentModeDetails =
-    MODE_CONFIG[activeMode];
+  const handleReset = useCallback(() => {
+    setViewState('input');
+    setAttachedFile(null);
+    setPlanText('');
+    setSkipClarification(false);
+    sessionContextRef.current = {
+      userFacts: [],
+      assumptions: [],
+    };
+    setSessionContext({
+      userFacts: [],
+      assumptions: [],
+    });
+    setPlanVersion('1.0');
+    setAnalysesState({});
+    setActiveScenario(null);
+    setScanningForMode(null);
+    setActiveMode(MODES.IMPROVE);
+    setAskMockResponse('');
+    setIsAskProcessing(false);
+    setClarification(null);
+    setClarificationAnswers({});
+    setClarificationDecisions({});
+    setIsClarificationSubmitting(false);
+    setAdoptionState({ isAdopting: false, step: null });
+  }, []);
 
   return (
     <div className="app-container">
-
       <AtmosphericBackground />
 
       <Navigation
         onReset={handleReset}
         hasActivePlan={
-          viewState === 'results' ||
-          planText.trim().length > 0
+          viewState === 'results' || planText.trim().length > 0
         }
         planVersion={planVersion}
       />
 
       <main className="main-content">
+        {/* ─────────────────────────────────────────────
+            CLARIFICATION DIALOG
+        ───────────────────────────────────────────── */}
         {clarification && (
           <div className="clarification-overlay">
             <div className="clarification-card">
@@ -1305,75 +1150,107 @@ export default function App() {
               <p className="clarification-intro">
                 NORTHSTAR found {clarification.questions.length}{' '}
                 decision-critical input
-                {clarification.questions.length === 1 ? '' : 's'}.
-                You can provide them now, or continue with clearly labelled
-                assumptions.
+                {clarification.questions.length === 1 ? '' : 's'}. Provide
+                specifics now, or proceed with calibrated baseline assumptions.
               </p>
 
               <div className="clarification-questions">
                 {clarification.questions.map((question, index) => {
-                  const decision = clarificationDecisions[index];
+                  const decision = clarificationDecisions[index] || 'assume';
+                  const isProvide = decision === 'provide';
 
                   return (
-                    <div className="clarification-question" key={index}>
-                      <div className="clarification-question-number">
-                        {index + 1}
+                    <div className="clarification-question-card" key={index}>
+                      <div className="clarification-header-row">
+                        <div className="clarification-question-number">
+                          {index + 1}
+                        </div>
+                        <div className="clarification-question-text">
+                          <h3>{question.question}</h3>
+                          <p className="clarification-why-matters">
+                            {question.why_it_matters}
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="clarification-question-content">
-                        <h3>{question.question}</h3>
+                      <div className="clarification-choices-grid">
+                        {/* OPTION A */}
+                        <button
+                          type="button"
+                          className={`clarification-choice-card ${
+                            isProvide ? 'is-selected' : ''
+                          }`}
+                          onClick={() =>
+                            setClarificationDecisions((prev) => ({
+                              ...prev,
+                              [index]: 'provide',
+                            }))
+                          }
+                        >
+                          <div className="choice-indicator">
+                            {isProvide ? (
+                              <Check size={13} className="check-icon" />
+                            ) : (
+                              <span className="unselected-dot" />
+                            )}
+                          </div>
+                          <div className="choice-content">
+                            <span className="choice-title">I'll provide this</span>
+                            <span className="choice-desc">
+                              Supply exact constraints or facts
+                            </span>
+                          </div>
+                        </button>
 
-                        <p>{question.why_it_matters}</p>
+                        {/* OPTION B */}
+                        <button
+                          type="button"
+                          className={`clarification-choice-card ${
+                            !isProvide ? 'is-selected' : ''
+                          }`}
+                          onClick={() =>
+                            setClarificationDecisions((prev) => ({
+                              ...prev,
+                              [index]: 'assume',
+                            }))
+                          }
+                        >
+                          <div className="choice-indicator">
+                            {!isProvide ? (
+                              <Check size={13} className="check-icon" />
+                            ) : (
+                              <span className="unselected-dot" />
+                            )}
+                          </div>
+                          <div className="choice-content">
+                            <span className="choice-title">
+                              Continue with an assumption
+                            </span>
+                            <span className="choice-desc">
+                              Let NORTHSTAR use a reasonable baseline
+                            </span>
+                          </div>
+                        </button>
+                      </div>
 
-                        <div className="clarification-choice-row">
-                          <button
-                            type="button"
-                            className={
-                              decision === "provide"
-                                ? "clarification-choice active"
-                                : "clarification-choice"
-                            }
-                            onClick={() =>
-                              setClarificationDecisions((prev) => ({
-                                ...prev,
-                                [index]: "provide",
-                              }))
-                            }
-                          >
-                            I'll provide this
-                          </button>
-
-                          <button
-                            type="button"
-                            className={
-                              decision === "assume"
-                                ? "clarification-choice active"
-                                : "clarification-choice"
-                            }
-                            onClick={() =>
-                              setClarificationDecisions((prev) => ({
-                                ...prev,
-                                [index]: "assume",
-                              }))
-                            }
-                          >
-                            Continue with an assumption
-                          </button>
-                        </div>
-
-                        {decision === "provide" && (
+                      {/* Answer input only appears when Option A is selected */}
+                      {isProvide && (
+                        <div className="clarification-input-wrapper">
                           <textarea
-                            value={clarificationAnswers[index] || ""}
+                            rows={3}
+                            className="clarification-textarea"
+                            value={clarificationAnswers[index] || ''}
                             onChange={(event) =>
                               setClarificationAnswers((prev) => ({
                                 ...prev,
                                 [index]: event.target.value,
                               }))
                             }
-                            placeholder="Enter your answer..."
+                            placeholder={`Enter details for: "${question.question}"...`}
+                            autoFocus
                           />
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1381,77 +1258,58 @@ export default function App() {
 
               <div className="clarification-actions">
                 <button
-                  className="clarification-primary"
+                  type="button"
+                  className="btn-clarification-continue"
                   disabled={
                     isClarificationSubmitting ||
                     clarification.questions.some(
                       (_, index) =>
-                        clarificationDecisions[index] === "provide" &&
+                        clarificationDecisions[index] === 'provide' &&
                         !clarificationAnswers[index]?.trim()
                     )
                   }
                   onClick={handleClarificationProvide}
                 >
-                  {isClarificationSubmitting
-                    ? "Updating NORTHSTAR..."
-                    : "Continue →"}
+                  <span>Continue with Analysis</span>
+                  <ArrowRight size={15} />
                 </button>
               </div>
 
               <div className="clarification-footnote">
                 NORTHSTAR asks only when missing information could materially
-                change the decision.
+                alter the strategic decision.
               </div>
             </div>
           </div>
         )}
-        {/* ─────────────────────────────────────────────
-            INPUT
-        ───────────────────────────────────────────── */}
 
+        {/* ─────────────────────────────────────────────
+            1. INPUT / HOME VIEW (No AskNorthstar here)
+        ───────────────────────────────────────────── */}
         {viewState === 'input' && (
           <div className="landing-view-enter">
-
             <div className="hero-section-stellar">
-
               <div className="hero-tag-stellar">
-                <Orbit
-                  size={13}
-                  className="spin-slow"
-                />
-
-                <span>
-                  PLANNING INTELLIGENCE SYSTEM
-                </span>
+                <Orbit size={13} className="spin-slow" />
+                <span>PLANNING INTELLIGENCE SYSTEM</span>
               </div>
 
               <h1 className="hero-title-stellar">
-
                 <span className="hero-title-line">
                   Navigate the{' '}
-                  <span className="highlight-unknowns">
-                    unknowns
-                  </span>
+                  <span className="highlight-unknowns">unknowns</span>
                 </span>
-
                 <span className="hero-title-line">
                   in your{' '}
-                  <span className="highlight-stellar">
-                    critical plans
-                  </span>
-                  .
+                  <span className="highlight-stellar">critical plans</span>.
                 </span>
-
               </h1>
 
               <p className="hero-subtitle-stellar">
-                Stress-test fragile assumptions,
-                map hidden failure dependencies,
-                and reveal alternative pathways
-                before committing your time and
-                capital.
+                Stress-test fragile assumptions, map hidden failure
+                dependencies, and reveal alternative pathways before committing
+                your time and capital.
               </p>
-
             </div>
 
             <PlanInput
@@ -1460,6 +1318,8 @@ export default function App() {
               isSpeechActive={isSpeechActive}
               setIsSpeechActive={setIsSpeechActive}
               onFileSelect={setAttachedFile}
+              onAnalyze={handleLaunchAnalysis}
+              activeMode={activeMode}
             />
 
             <ModeSelector
@@ -1467,115 +1327,46 @@ export default function App() {
               onSelectMode={setActiveMode}
             />
 
-            <div className="action-bar-container-stellar">
-
-              <button
-                type="button"
-                className="btn-primary-launch-stellar"
-                disabled={!planText.trim() && !attachedFile}
-                onClick={
-                  handleLaunchAnalysis
-                }
-                title={
-                  planText.trim()
-                    ? `Launch ${currentModeDetails.name}`
-                    : 'Enter your plan or attach a file'
-                }
-              >
-
-                <span className="btn-text">
-                  {currentModeDetails.btnLabel}
-                </span>
-
-                <ArrowRight
-                  size={18}
-                  className="btn-arrow-icon"
-                />
-
-              </button>
-
-              <div className="action-meta-row">
-                <span className="action-hint-stellar">
-                  SESSION-BOUND REASONING • ZERO DATA RETENTION • AI-POWERED ANALYSIS
-                </span>
-              </div>
-
+            <div className="action-meta-footer">
+              <span className="action-hint-stellar">
+                SESSION-BOUND REASONING • ZERO DATA RETENTION • AUTONOMOUS AI INTELLIGENCE
+              </span>
             </div>
-
           </div>
         )}
 
         {/* ─────────────────────────────────────────────
-            SCANNING
+            2. SCANNING / LOADING VIEW (No AskNorthstar here)
         ───────────────────────────────────────────── */}
-
         {viewState === 'scanning' && (
           <IntelligenceScanning
-            activeMode={
-              scanningForMode ||
-              activeMode
-            }
-            onComplete={
-              handleScanningComplete
-            }
+            activeMode={scanningForMode || activeMode}
+            onComplete={handleScanningComplete}
           />
         )}
 
         {/* ─────────────────────────────────────────────
-            RESULTS
+            3. RESULTS VIEW (In-flow AskNorthstar inside)
         ───────────────────────────────────────────── */}
-
         {viewState === 'results' && (
           <ResultsShell
             planText={planText}
             planVersion={planVersion}
             activeMode={activeMode}
-            setActiveMode={
-              handleResultsModeSwitch
-            }
-            analysesState={
-              analysesState
-            }
-            onEditPlan={() =>
-              setViewState('input')
-            }
-            activeScenario={
-              activeScenario
-            }
-            onAdoptScenario={
-              handleAdoptScenario
-            }
-            onDismissScenario={
-              handleDismissScenario
-            }
+            setActiveMode={handleResultsModeSwitch}
+            analysesState={analysesState}
+            onEditPlan={() => setViewState('input')}
+            activeScenario={activeScenario}
+            onAdoptScenario={handleAdoptScenario}
+            onDismissScenario={handleDismissScenario}
+            onAsk={handleAskNorthstar}
+            isAskProcessing={isAskProcessing}
+            askMockResponse={askMockResponse}
+            onClearResponse={() => setAskMockResponse('')}
+            isAdoptingScenario={adoptionState.isAdopting}
+            adoptionStep={adoptionState.step}
           />
         )}
-
-        {/* ─────────────────────────────────────────────
-            ASK NORTHSTAR
-        ───────────────────────────────────────────── */}
-
-        <AskNorthstar
-          onAsk={
-            handleAskNorthstar
-          }
-          isScenarioActive={
-            !!activeScenario
-          }
-          currentVersion={
-            planVersion
-          }
-          isProcessing={
-            isAskProcessing
-          }
-          mockResponse={
-            askMockResponse
-          }
-          onClearResponse={() =>
-            setAskMockResponse('')
-          }
-        />
-
       </main>
     </div>
   );

@@ -7,23 +7,23 @@ import {
   Download,
   Edit3,
   Layers,
-  AlertCircle,
-  TrendingUp,
-  ShieldAlert,
   ArrowRight,
   X,
-  Radar,
-  Flame,
-  CheckCircle2,
-  Target,
-  ListOrdered,
+  Compass,
   Network,
-  Lightbulb,
+  Flame,
   TriangleAlert,
+  AlertCircle,
+  Radar,
+  CheckCircle2,
+  ShieldAlert,
+  Lightbulb,
+  TrendingUp,
+  ListOrdered,
   Activity,
-  Route,
 } from 'lucide-react';
 import { MODES, MODE_CONFIG } from './ModeSelector';
+import AskNorthstar from './AskNorthstar';
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
 
@@ -86,13 +86,13 @@ function ImproveView({ analysis }) {
       <div className="result-title-bar-stellar">
         <div>
           <h3 className="result-mode-heading heading-improve">
-            <Sparkles size={22} />
-            <span>Reality Check &amp; High-Leverage Improvements</span>
+            <Sparkles size={20} />
+            <span>Reality Check &amp; Strategic Improvements</span>
           </h3>
 
           <p className="result-mode-desc">
             Critical examination of fragile assumptions, blind spots, and
-            structural dependencies — with a prioritised action roadmap.
+            structural dependencies with a prioritized action roadmap.
           </p>
         </div>
 
@@ -210,7 +210,7 @@ function ImproveView({ analysis }) {
           <div className="findings-list">
             {priorities.map((p) => (
               <div key={p.rank} className="priority-row-stellar">
-                <span className={`priority-rank-badge rank-${p.label.toLowerCase()}`}>
+                <span className={`priority-rank-badge rank-${(p.label || '').toLowerCase()}`}>
                   {p.rank}. {p.label}
                 </span>
 
@@ -256,7 +256,7 @@ function AlternativesView({ analysis }) {
       <div className="result-title-bar-stellar">
         <div>
           <h3 className="result-mode-heading heading-alternatives">
-            <GitFork size={22} />
+            <GitFork size={20} />
             <span>Alternative Strategic Pathways</span>
           </h3>
 
@@ -382,7 +382,6 @@ function ResilienceMeter({ score, label }) {
             style={{
               width: '18%',
               background: 'var(--accent-star)',
-              boxShadow: '0 0 12px var(--accent-star)',
             }}
           />
         </div>
@@ -435,7 +434,6 @@ function ResilienceMeter({ score, label }) {
           style={{
             width: `${score}%`,
             background: color,
-            boxShadow: `0 0 12px ${color}`,
           }}
         />
       </div>
@@ -448,9 +446,7 @@ function StressScenario({ scenario, index }) {
     ? scenario.cascade
     : [];
 
-  const earlyWarning = Array.isArray(
-    scenario?.earlyWarning
-  )
+  const earlyWarning = Array.isArray(scenario?.earlyWarning)
     ? scenario.earlyWarning
     : scenario?.earlyWarning
       ? [scenario.earlyWarning]
@@ -484,8 +480,7 @@ function StressScenario({ scenario, index }) {
 
           <strong>
             FAILURE SIMULATION {index + 1}:{' '}
-            {scenario?.title ||
-              `Failure scenario ${index + 1}`}
+            {scenario?.title || `Failure scenario ${index + 1}`}
           </strong>
         </div>
 
@@ -567,7 +562,7 @@ function StressTestView({ analysis }) {
       <div className="result-title-bar-stellar">
         <div>
           <h3 className="result-mode-heading heading-stresstest">
-            <AlertTriangle size={22} />
+            <AlertTriangle size={20} />
             <span>
               Adversarial Stress Test &amp; Shock Simulations
             </span>
@@ -631,10 +626,17 @@ export default function ResultsShell({
   activeScenario,
   onAdoptScenario,
   onDismissScenario,
+  onAsk,
+  isAskProcessing,
+  askMockResponse,
+  onClearResponse,
+  isAdoptingScenario = false,
+  adoptionStep = null,
 }) {
   const currentAnalysis = analysesState[activeMode];
 
   const isStale =
+    !isAdoptingScenario &&
     currentAnalysis &&
     currentAnalysis.version !== planVersion;
 
@@ -821,8 +823,7 @@ export default function ResultsShell({
         data.scenarios?.forEach(
           (scenario, index) => {
             addText(
-              `FAILURE SIMULATION ${index + 1}: ${scenario.title || ''
-              }`,
+              `FAILURE SIMULATION ${index + 1}: ${scenario.title || ''}`,
               11,
               true
             );
@@ -847,9 +848,7 @@ export default function ResultsShell({
             );
 
             if (scenario.earlyWarning) {
-              const warnings = Array.isArray(
-                scenario.earlyWarning
-              )
+              const warnings = Array.isArray(scenario.earlyWarning)
                 ? scenario.earlyWarning
                 : [scenario.earlyWarning];
 
@@ -875,15 +874,14 @@ export default function ResultsShell({
 
   return (
     <div className="results-screen-stellar">
-
-      {/* ── Plan header capsule ──────────────────────────────────────────── */}
+      {/* ── 1. Plan header capsule (Current Plan) ────────────────────────── */}
       <div className="results-header-stellar-card">
         <div className="plan-canonical-meta-stellar">
           <div className="plan-meta-left">
             <span className="plan-version-capsule">
               <Layers size={13} />
               <span>
-                VERSION {planVersion} • CANONICAL REALITY
+                VERSION {planVersion} • CANONICAL PLAN
               </span>
             </span>
 
@@ -894,8 +892,7 @@ export default function ResultsShell({
               >
                 <AlertCircle size={13} />
                 <span>
-                  ANALYSIS STALE (GENERATED FROM V
-                  {currentAnalysis.version})
+                  ANALYSIS STALE (GENERATED FROM V{currentAnalysis.version})
                 </span>
               </span>
             )}
@@ -931,132 +928,140 @@ export default function ResultsShell({
         </div>
       </div>
 
-      {/* ── Scenario sandbox ─────────────────────────────────────────────── */}
+      {/* ── 2. Ask Northstar (In Normal Document Flow) ────────────────────── */}
+      <AskNorthstar
+        onAsk={onAsk}
+        isScenarioActive={!!activeScenario}
+        currentVersion={planVersion}
+        isProcessing={isAskProcessing}
+        mockResponse={askMockResponse}
+        onClearResponse={onClearResponse}
+      />
+
+      {/* ── 3. Scenario Sandbox (If Present) ──────────────────────────────── */}
       {activeScenario && (
         <div className="scenario-sandbox-banner">
-
           <div className="scenario-banner-left">
-
             <div className="scenario-glow-pill">
               <Radar size={14} />
               <span>
                 {activeScenario.type === 'PLAN_CHANGE'
-                  ? 'PROPOSED PLAN CHANGE'
+                  ? 'PROPOSED PLAN CHANGE • SIMULATION'
                   : 'TEMPORARY SCENARIO SANDBOX'}
               </span>
             </div>
 
             <div className="scenario-query-text">
-
               <div className="scenario-request-label">
                 {activeScenario.type === 'PLAN_CHANGE'
-                  ? 'You asked NORTHSTAR to change your plan:'
-                  : 'You asked NORTHSTAR to simulate:'}
+                  ? 'Requested plan modification:'
+                  : 'Simulated what-if scenario:'}
               </div>
 
-              <strong>
+              <strong className="scenario-query-headline">
                 "{activeScenario.query}"
               </strong>
 
               <span className="scenario-subtext">
-                Canonical plan remains unchanged until adopted.
+                Canonical plan v{planVersion} remains untouched until adopted.
               </span>
-
             </div>
 
             {/* PLAN CHANGE DETAILS */}
             {activeScenario.type === 'PLAN_CHANGE' &&
               activeScenario.proposedChanges?.length > 0 && (
-
                 <div className="scenario-proposed-changes">
-
                   <div className="scenario-detail-heading">
-                    PROPOSED CHANGE
+                    PROPOSED MODIFICATIONS
                   </div>
 
-                  {activeScenario.proposedChanges.map(
-                    (change, index) => (
-                      <div
-                        key={index}
-                        className="scenario-change-item"
-                      >
-                        <CheckCircle2 size={15} />
-
-                        <div>
-                          <strong>
-                            {change.change ||
-                              change.title ||
-                              change.description ||
-                              'Plan change'}
-                          </strong>
-
-                          {change.reason && (
-                            <p>
-                              {change.reason}
-                            </p>
-                          )}
-                        </div>
+                  {activeScenario.proposedChanges.map((change, index) => (
+                    <div key={index} className="scenario-change-item">
+                      <div className="change-item-icon">
+                        <CheckCircle2 size={16} />
                       </div>
-                    )
-                  )}
-
+                      <div className="change-item-body">
+                        <strong>
+                          {change.change ||
+                            change.title ||
+                            change.description ||
+                            'Plan modification'}
+                        </strong>
+                        {change.reason && (
+                          <p>{change.reason}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
             {/* WHAT-IF DETAILS */}
             {activeScenario.type === 'WHAT_IF' && (
               <div className="scenario-whatif-details">
-
                 {activeScenario.impact && (
-                  <div>
-                    <span>IMPACT</span>
-                    <p>{activeScenario.impact}</p>
+                  <div className="whatif-stat-block whatif-impact-block">
+                    <span className="whatif-stat-label">PROJECTED IMPACT</span>
+                    <p className="whatif-stat-content">{activeScenario.impact}</p>
                   </div>
                 )}
 
                 {activeScenario.dependencies?.length > 0 && (
-                  <div>
-                    <span>DEPENDENCIES</span>
-                    <p>
-                      {activeScenario.dependencies.join(' • ')}
-                    </p>
+                  <div className="whatif-stat-block">
+                    <span className="whatif-stat-label">EXPOSED DEPENDENCIES</span>
+                    <ul className="whatif-stat-list">
+                      {Array.isArray(activeScenario.dependencies)
+                        ? activeScenario.dependencies.map((dep, idx) => (
+                            <li key={idx}>{dep}</li>
+                          ))
+                        : <li>{activeScenario.dependencies}</li>}
+                    </ul>
                   </div>
                 )}
 
                 {activeScenario.risks?.length > 0 && (
-                  <div>
-                    <span>RISKS</span>
-                    <p>
-                      {activeScenario.risks.join(' • ')}
-                    </p>
+                  <div className="whatif-stat-block">
+                    <span className="whatif-stat-label">NEW RISKS INTRODUCED</span>
+                    <ul className="whatif-stat-list">
+                      {Array.isArray(activeScenario.risks)
+                        ? activeScenario.risks.map((risk, idx) => (
+                            <li key={idx}>{risk}</li>
+                          ))
+                        : <li>{activeScenario.risks}</li>}
+                    </ul>
                   </div>
                 )}
 
+                {activeScenario.tradeoffs?.length > 0 && (
+                  <div className="whatif-stat-block">
+                    <span className="whatif-stat-label">STRATEGIC TRADE-OFFS</span>
+                    <ul className="whatif-stat-list">
+                      {Array.isArray(activeScenario.tradeoffs)
+                        ? activeScenario.tradeoffs.map((to, idx) => (
+                            <li key={idx}>{to}</li>
+                          ))
+                        : <li>{activeScenario.tradeoffs}</li>}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
-
           </div>
 
           <div className="scenario-banner-actions">
-
             <button
               type="button"
               className="btn-adopt-stellar"
               onClick={onAdoptScenario}
-              disabled={!onAdoptScenario}
+              disabled={isAskProcessing}
+              title={`Adopt change into canonical plan v${(parseFloat(planVersion) + 0.1).toFixed(1)}`}
             >
-              <CheckCircle2 size={15} />
-
+              <CheckCircle2 size={16} />
               <span>
                 {activeScenario.type === 'PLAN_CHANGE'
-                  ? `Adopt Change (v${(
-                    parseFloat(planVersion) + 0.1
-                  ).toFixed(1)})`
-                  : `Adopt Scenario (v${(
-                    parseFloat(planVersion) + 0.1
-                  ).toFixed(1)})`}
+                  ? `Adopt Change (v${(parseFloat(planVersion) + 0.1).toFixed(1)})`
+                  : `Adopt Scenario (v${(parseFloat(planVersion) + 0.1).toFixed(1)})`}
               </span>
-
               <ArrowRight size={14} />
             </button>
 
@@ -1064,92 +1069,102 @@ export default function ResultsShell({
               type="button"
               className="btn-dismiss-scenario"
               onClick={onDismissScenario}
-              title="Keep current plan"
+              disabled={isAskProcessing}
+              title="Keep current canonical plan unchanged"
             >
               <X size={15} />
-
-              <span>
-                Keep Current Plan
-              </span>
+              <span>Keep Current Plan</span>
             </button>
-
           </div>
-
         </div>
       )}
 
-      {/* ── Mode navigation tabs ─────────────────────────────────────────── */}
-      <div className="results-mode-tabs-stellar">
-        {Object.values(MODE_CONFIG).map((mode) => {
-          const Icon = mode.icon;
-          const isActive = activeMode === mode.id;
-          const hasGenerated = !!analysesState[mode.id];
+      {/* ── 4. Plan Analysis & Mode Switching ────────────────────────────── */}
+      {isAdoptingScenario ? (
+        <div className="adoption-recalculation-card">
+          <div className="recalculation-core">
+            <Compass size={28} className="calm-spinning-compass" />
+          </div>
+          <h4>
+            {adoptionStep === 'recalculating'
+              ? `Recalculating NORTHSTAR analysis for v${(parseFloat(planVersion) + 0.1).toFixed(1)}...`
+              : 'Applying adopted scenario changes to canonical plan...'}
+          </h4>
+          <p>
+            Re-evaluating critical assumptions, structural dependencies, and strategic pathways
+          </p>
+          <div className="recalculation-bar-track">
+            <div className="recalculation-bar-fill" />
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Mode navigation tabs */}
+          <div className="results-mode-tabs-stellar">
+            {Object.values(MODE_CONFIG).map((mode) => {
+              const Icon = mode.icon;
+              const isActive = activeMode === mode.id;
+              const hasGenerated = !!analysesState[mode.id];
 
-          const modeStale =
-            hasGenerated &&
-            analysesState[mode.id].version !== planVersion;
+              const modeStale =
+                hasGenerated &&
+                analysesState[mode.id].version !== planVersion;
 
-          return (
-            <button
-              type="button"
-              key={mode.id}
-              className={`mode-tab-stellar ${isActive
-                ? `active-tab-${mode.colorKey}`
-                : ''
-                }`}
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveMode(mode.id);
-              }}
-            >
-              <Icon size={16} />
-              <span>{mode.name}</span>
+              return (
+                <button
+                  type="button"
+                  key={mode.id}
+                  className={`mode-tab-stellar ${
+                    isActive ? `active-tab-${mode.colorKey}` : ''
+                  }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setActiveMode(mode.id);
+                  }}
+                >
+                  <Icon size={16} />
+                  <span>{mode.name}</span>
 
-              {hasGenerated && (
-                <span
-                  className={`tab-status-dot ${modeStale
-                    ? 'dot-stale'
-                    : 'dot-active'
-                    }`}
-                  title={
-                    modeStale
-                      ? 'Analysis is stale — plan was updated'
-                      : 'Analysis synchronised'
-                  }
-                />
-              )}
+                  {hasGenerated && (
+                    <span
+                      className={`tab-status-dot ${
+                        modeStale ? 'dot-stale' : 'dot-active'
+                      }`}
+                      title={
+                        modeStale
+                          ? 'Analysis is stale — plan was updated'
+                          : 'Analysis synchronised'
+                      }
+                    />
+                  )}
 
-              {!hasGenerated && (
-                <span
-                  className="tab-not-run-dot"
-                  title="Not yet run for this plan"
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
+                  {!hasGenerated && (
+                    <span
+                      className="tab-not-run-dot"
+                      title="Not yet run for this plan"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-      {/* ── Active mode result surface ───────────────────────────────────── */}
-      <div className="result-surface-stellar">
-        {activeMode === MODES.IMPROVE && (
-          <ImproveView
-            analysis={currentAnalysis?.data}
-          />
-        )}
+          {/* Active mode result surface */}
+          <div className="result-surface-stellar">
+            {activeMode === MODES.IMPROVE && (
+              <ImproveView analysis={currentAnalysis?.data} />
+            )}
 
-        {activeMode === MODES.ALTERNATIVES && (
-          <AlternativesView
-            analysis={currentAnalysis?.data}
-          />
-        )}
+            {activeMode === MODES.ALTERNATIVES && (
+              <AlternativesView analysis={currentAnalysis?.data} />
+            )}
 
-        {activeMode === MODES.STRESSTEST && (
-          <StressTestView
-            analysis={currentAnalysis?.data}
-          />
-        )}
-      </div>
+            {activeMode === MODES.STRESSTEST && (
+              <StressTestView analysis={currentAnalysis?.data} />
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

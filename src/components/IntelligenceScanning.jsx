@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Compass, Sparkles, Activity, ShieldAlert, GitFork } from 'lucide-react';
-import { MODES } from './ModeSelector';
+import React, { useState, useEffect, useRef } from 'react';
+import { Compass, Sparkles, GitFork, AlertTriangle } from 'lucide-react';
+import { MODES, MODE_CONFIG } from './ModeSelector';
 
 const SCAN_STEPS = {
   [MODES.IMPROVE]: [
@@ -23,9 +23,25 @@ const SCAN_STEPS = {
   ]
 };
 
-export default function IntelligenceScanning({ activeMode, onComplete }) {
+export default function IntelligenceScanning({
+  activeMode = MODES.IMPROVE,
+  onComplete,
+  customTitle,
+  customSteps,
+}) {
   const [stepIndex, setStepIndex] = useState(0);
-  const steps = SCAN_STEPS[activeMode] || SCAN_STEPS[MODES.IMPROVE];
+  const steps = customSteps || SCAN_STEPS[activeMode] || SCAN_STEPS[MODES.IMPROVE];
+  const modeInfo = MODE_CONFIG[activeMode] || MODE_CONFIG[MODES.IMPROVE];
+
+  const ModeIcon =
+    activeMode === MODES.ALTERNATIVES
+      ? GitFork
+      : activeMode === MODES.STRESSTEST
+      ? AlertTriangle
+      : Sparkles;
+
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     let completed = false;
@@ -41,8 +57,8 @@ export default function IntelligenceScanning({ activeMode, onComplete }) {
           clearInterval(interval);
 
           setTimeout(() => {
-            onComplete();
-          }, 400);
+            if (onCompleteRef.current) onCompleteRef.current();
+          }, 350);
         }
 
         return prev;
@@ -53,42 +69,47 @@ export default function IntelligenceScanning({ activeMode, onComplete }) {
       clearInterval(interval);
       completed = true;
     };
-  }, [activeMode]);
+  }, [steps]);
+
+  const progressPercent = Math.round(((stepIndex + 1) / steps.length) * 100);
 
   return (
     <div className="intelligence-scanning-overlay">
-      <div className="scanning-card-glow">
-        {/* Holographic Radar / Beacon Animation */}
+      <div className={`scanning-card-glow scanning-${modeInfo.colorKey}`}>
+        {/* Calm Central Reasoning Core */}
         <div className="scanning-beacon-wrap">
-          <div className="beacon-radar-sweep" />
+          <div className="beacon-ambient-glow" />
           <div className="beacon-core-star">
-            <Compass size={36} className="spinning-compass" />
+            <Compass size={28} className="calm-spinning-compass" />
           </div>
-          <div className="beacon-ring ring-1" />
-          <div className="beacon-ring ring-2" />
-          <div className="beacon-ring ring-3" />
         </div>
 
-        <div className="scanning-telemetry">
-          <div className="telemetry-badge">
-            <span className="live-blink-dot" />
-            <span>NORTHSTAR REASONING ENGINE ACTIVE</span>
+        <div className="scanning-content-body">
+          <div className="scanning-mode-pill">
+            <ModeIcon size={13} />
+            <span>{customTitle || `${modeInfo.name.toUpperCase()} • REASONING`}</span>
           </div>
 
-          <h3 className="scanning-status-title">{steps[stepIndex]}</h3>
+          <h3 className="scanning-status-title">
+            {steps[stepIndex]}
+          </h3>
 
-          {/* Holographic Step Progress Bar */}
-          <div className="scanning-progress-bar">
-            <div
-              className="scanning-progress-fill"
-              style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }}
-            />
+          {/* Calm, High-Precision Progress Bar */}
+          <div className="scanning-progress-container">
+            <div className="scanning-progress-bar">
+              <div
+                className="scanning-progress-fill"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <div className="scanning-progress-meta">
+              <span>Step {stepIndex + 1} of {steps.length}</span>
+              <span>{progressPercent}%</span>
+            </div>
           </div>
 
-          <div className="scanning-metrics-row">
-            <span>TELEMETRY: SYNCHRONIZED</span>
-            <span>MODEL: GEMINI 3.7 FLASH</span>
-            <span>STATUS: REASONING</span>
+          <div className="scanning-subtext">
+            Evaluating constraints, blind spots, and structural dependencies
           </div>
         </div>
       </div>

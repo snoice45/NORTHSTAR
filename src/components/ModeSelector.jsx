@@ -1,5 +1,11 @@
 import React from 'react';
-import { Sparkles, GitFork, AlertTriangle, Check, ShieldAlert, Cpu, Orbit } from 'lucide-react';
+import {
+  Sparkles,
+  GitFork,
+  AlertTriangle,
+  Check,
+  Compass,
+} from 'lucide-react';
 
 export const MODES = {
   IMPROVE: 'improve',
@@ -11,7 +17,7 @@ export const MODE_CONFIG = {
   [MODES.IMPROVE]: {
     id: MODES.IMPROVE,
     name: 'Improve My Plan',
-    tag: 'REALITY CHECK',
+    tag: 'Reality Check',
     subtitle: 'Assumptions • Dependencies • Vulnerabilities',
     description: 'Examine hidden assumptions, critical dependencies, blind spots, and actionable ways to make your plan robust.',
     icon: Sparkles,
@@ -22,7 +28,7 @@ export const MODE_CONFIG = {
   [MODES.ALTERNATIVES]: {
     id: MODES.ALTERNATIVES,
     name: 'Explore Alternatives',
-    tag: 'PATHWAY FORKING',
+    tag: 'Pathway Forking',
     subtitle: 'Strategic Branching • Novel Routes',
     description: 'Find genuinely different routes to accomplish your underlying goal when primary constraints or circumstances shift.',
     icon: GitFork,
@@ -33,7 +39,7 @@ export const MODE_CONFIG = {
   [MODES.STRESSTEST]: {
     id: MODES.STRESSTEST,
     name: 'Stress Test My Plan',
-    tag: 'ADVERSARIAL SIMULATION',
+    tag: 'Adversarial Simulation',
     subtitle: 'Failure Cascades • Bottleneck Shocks',
     description: 'Simulate plausible breakdown points, cascading failure chains, bottlenecks, and pre-emptive contingencies.',
     icon: AlertTriangle,
@@ -43,16 +49,37 @@ export const MODE_CONFIG = {
   }
 };
 
+const MODE_EXAMPLES = [
+  {
+    modeId: MODES.IMPROVE,
+    lensName: 'Improve My Plan',
+    colorKey: 'improve',
+    summary: 'Audits unverified market assumptions & sequencing bottlenecks in a 9-month company expansion.'
+  },
+  {
+    modeId: MODES.ALTERNATIVES,
+    lensName: 'Explore Alternatives',
+    colorKey: 'alternatives',
+    summary: 'Discovers organic distribution & revenue-share routes when upfront capital is constrained.'
+  },
+  {
+    modeId: MODES.STRESSTEST,
+    lensName: 'Stress Test My Plan',
+    colorKey: 'stresstest',
+    summary: 'Simulates key vendor failures, runway contraction cascades, and early warning tripwires.'
+  }
+];
+
 export default function ModeSelector({ activeMode, onSelectMode }) {
   return (
     <div className="modes-selection-container">
       <div className="section-heading-stellar">
-        <div className="heading-crosshair" />
-        <Orbit size={14} className="heading-icon-pulse" />
-        <span>SELECT INTELLIGENCE VECTOR</span>
+        <Compass size={14} className="heading-icon-static" />
+        <span>INTELLIGENCE LENSES</span>
         <div className="heading-line" />
       </div>
 
+      {/* 3 Primary Intelligence Lenses */}
       <div className="modes-grid-dynamic">
         {Object.values(MODE_CONFIG).map((mode) => {
           const Icon = mode.icon;
@@ -62,19 +89,30 @@ export default function ModeSelector({ activeMode, onSelectMode }) {
             <div
               key={mode.id}
               data-mode={mode.id}
-              className={`mode-card-stellar ${isSelected ? `selected-${mode.colorKey}` : 'receded-mode'}`}
+              role="button"
+              tabIndex={0}
+              aria-pressed={isSelected}
+              className={`mode-card-stellar ${
+                isSelected
+                  ? `is-selected selected-${mode.colorKey}`
+                  : 'is-inactive'
+              }`}
               onClick={() => onSelectMode(mode.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectMode(mode.id);
+                }
+              }}
             >
-              {/* Shimmer light sweep highlight */}
-              <div className="card-shimmer-sweep" />
+              {/* Left Accent Rail Indicator */}
+              <div className="card-accent-rail" />
 
               <div className="mode-card-header">
                 <div className="mode-icon-stellar-box">
-                  <Icon size={20} className="mode-icon-svg" />
+                  <Icon size={18} className="mode-icon-svg" />
                 </div>
-                <div className="mode-tag-pill">
-                  {mode.tag}
-                </div>
+                <span className="mode-tag-pill">{mode.tag}</span>
               </div>
 
               <div className="mode-content-block">
@@ -84,21 +122,44 @@ export default function ModeSelector({ activeMode, onSelectMode }) {
               </div>
 
               <div className="mode-card-footer">
-                <div className="mode-selection-status">
-                  <span className="status-radio-ring">
-                    {isSelected && <span className="status-radio-core" />}
-                  </span>
-                  <span className="status-label">
-                    {isSelected ? 'ACTIVE VECTOR' : 'SELECT VECTOR'}
-                  </span>
-                </div>
-                {isSelected && (
-                  <span className="selection-active-badge">ENGAGED</span>
+                {isSelected ? (
+                  <div className="mode-selection-badge active">
+                    <Check size={13} className="check-icon" />
+                    <span>Selected</span>
+                  </div>
+                ) : (
+                  <div className="mode-selection-badge inactive">
+                    <span className="selection-dot" />
+                    <span>Select Lens</span>
+                  </div>
                 )}
               </div>
             </div>
           );
         })}
+      </div>
+
+      {/* Visual Examples Below Mode Selector */}
+      <div className="mode-examples-strip">
+        <div className="examples-header">
+          <span className="examples-title">CAPABILITIES IN ACTION:</span>
+        </div>
+        <div className="examples-grid">
+          {MODE_EXAMPLES.map((item) => (
+            <div
+              key={item.modeId}
+              className={`example-item ${activeMode === item.modeId ? 'highlighted-example' : ''}`}
+              onClick={() => onSelectMode(item.modeId)}
+              title={`Switch to ${item.lensName}`}
+            >
+              <div className="example-lens-tag">
+                <span className={`lens-indicator-dot dot-${item.colorKey}`} />
+                <span className="example-lens-name">{item.lensName}</span>
+              </div>
+              <p className="example-summary-text">{item.summary}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
