@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { MODES, MODE_CONFIG } from './ModeSelector';
 import AskNorthstar from './AskNorthstar';
+import IntelligenceScanning from './IntelligenceScanning';
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
 
@@ -1081,22 +1082,18 @@ export default function ResultsShell({
 
       {/* ── 4. Plan Analysis & Mode Switching ────────────────────────────── */}
       {isAdoptingScenario ? (
-        <div className="adoption-recalculation-card">
-          <div className="recalculation-core">
-            <Compass size={28} className="calm-spinning-compass" />
-          </div>
-          <h4>
-            {adoptionStep === 'recalculating'
-              ? `Recalculating NORTHSTAR analysis for v${(parseFloat(planVersion) + 0.1).toFixed(1)}...`
-              : 'Applying adopted scenario changes to canonical plan...'}
-          </h4>
-          <p>
-            Re-evaluating critical assumptions, structural dependencies, and strategic pathways
-          </p>
-          <div className="recalculation-bar-track">
-            <div className="recalculation-bar-fill" />
-          </div>
-        </div>
+        <IntelligenceScanning
+          activeMode={activeMode}
+          customTitle="RECALCULATING YOUR PLAN"
+          customSteps={[
+            'Applying adopted changes...',
+            'Rechecking dependencies...',
+            'Updating strategic analysis...',
+            'Finalizing updated plan intelligence...',
+          ]}
+          customSubtext="Re-evaluating constraints, blind spots, and structural pathways"
+          stepInterval={2500}
+        />
       ) : (
         <>
           {/* Mode navigation tabs */}

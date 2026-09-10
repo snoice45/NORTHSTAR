@@ -18,16 +18,11 @@ export default function Navigation({ onReset, hasActivePlan, planVersion }) {
         </div>
 
         <div className="nav-badges">
-          <div className="badge-telemetry" title="Active Ephemeral Signal • Zero Data Retention">
-            <span className="telemetry-beacon-dot" />
-            <span className="telemetry-text">NAV SIGNAL: LOCKED</span>
-            <span className="telemetry-separator">•</span>
-            <span className="telemetry-text">IN-SESSION ONLY</span>
-          </div>
+
 
           {hasActivePlan && (
-            <button 
-              className="btn-stellar-sm" 
+            <button
+              className="btn-stellar-sm"
               onClick={onReset}
               title="Initialize a new plan"
             >

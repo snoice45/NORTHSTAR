@@ -64,30 +64,30 @@ export default function AtmosphericBackground() {
         ctx.lineTo(width, height);
         ctx.closePath();
 
-        // Very soft translucent champagne & warm ivory gradient washes
+        // Luminous organic light blue / periwinkle / lavender atmospheric ribbon washes
         const grad = ctx.createLinearGradient(0, baseHeight - amplitude, 0, height);
         if (c === 0) {
-          grad.addColorStop(0, 'rgba(230, 218, 198, 0.25)');
-          grad.addColorStop(0.6, 'rgba(240, 232, 218, 0.12)');
+          grad.addColorStop(0, 'rgba(186, 230, 253, 0.35)');
+          grad.addColorStop(0.6, 'rgba(199, 210, 254, 0.2)');
           grad.addColorStop(1, 'transparent');
         } else if (c === 1) {
-          grad.addColorStop(0, 'rgba(215, 202, 185, 0.2)');
-          grad.addColorStop(0.5, 'rgba(235, 226, 212, 0.1)');
+          grad.addColorStop(0, 'rgba(199, 210, 254, 0.28)');
+          grad.addColorStop(0.5, 'rgba(221, 214, 254, 0.16)');
           grad.addColorStop(1, 'transparent');
         } else {
-          grad.addColorStop(0, 'rgba(200, 190, 175, 0.15)');
+          grad.addColorStop(0, 'rgba(233, 213, 255, 0.22)');
           grad.addColorStop(1, 'transparent');
         }
 
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // Subtle architectural contour lines in warm stone
+        // Subtle architectural contour lines in soft periwinkle / lavender
         ctx.strokeStyle = c === 0 
-          ? 'rgba(180, 165, 145, 0.22)' 
+          ? 'rgba(99, 102, 241, 0.22)' 
           : c === 1 
-            ? 'rgba(195, 180, 160, 0.18)' 
-            : 'rgba(210, 198, 180, 0.15)';
+            ? 'rgba(129, 140, 248, 0.18)' 
+            : 'rgba(168, 85, 247, 0.16)';
         ctx.lineWidth = 1;
         ctx.stroke();
       }
@@ -101,18 +101,18 @@ export default function AtmosphericBackground() {
           const maxDist = 140;
 
           if (dist < maxDist) {
-            const lineAlpha = (1 - dist / maxDist) * 0.15 * nodes[i].alpha;
+            const lineAlpha = (1 - dist / maxDist) * 0.18 * nodes[i].alpha;
             ctx.beginPath();
             ctx.moveTo(nodes[i].x, nodes[i].y);
             ctx.lineTo(nodes[j].x, nodes[j].y);
-            ctx.strokeStyle = `rgba(160, 140, 120, ${lineAlpha})`;
+            ctx.strokeStyle = `rgba(99, 102, 241, ${lineAlpha})`;
             ctx.lineWidth = 0.7;
             ctx.stroke();
           }
         }
       }
 
-      // Draw and update delicate champagne micro-nodes
+      // Draw and update delicate periwinkle micro-nodes
       for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i];
         n.x += n.vx;
@@ -128,7 +128,7 @@ export default function AtmosphericBackground() {
 
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(130, 115, 95, ${boundedAlpha})`;
+        ctx.fillStyle = `rgba(99, 102, 241, ${boundedAlpha})`;
         ctx.fill();
       }
 
@@ -145,10 +145,10 @@ export default function AtmosphericBackground() {
 
   return (
     <div className="atmospheric-container" aria-hidden="true">
-      {/* Warm Ivory / Cream / Champagne Architectural Base */}
+      {/* Light Blue → Periwinkle → Lavender → Light Purple Base Canvas */}
       <div className="cream-base-canvas" />
 
-      {/* Slowly Shifting Organic Warm Light Fields */}
+      {/* Slowly Shifting Organic Blue / Purple Light Fields */}
       <div className="warm-light-field light-champagne-1" />
       <div className="warm-light-field light-alabaster-2" />
       <div className="warm-light-field light-ambermist-3" />

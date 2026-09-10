@@ -5,6 +5,7 @@ import ModeSelector, { MODES, MODE_CONFIG } from './components/ModeSelector';
 import ResultsShell from './components/ResultsShell';
 import AtmosphericBackground from './components/AtmosphericBackground';
 import IntelligenceScanning from './components/IntelligenceScanning';
+import TryAnExample from './components/TryAnExample';
 import { ArrowRight, Check, Orbit } from 'lucide-react';
 
 const analyzeWithNorthstar = async (
@@ -841,6 +842,18 @@ export default function App() {
     [analysesState, planVersion]
   );
 
+  const handleSelectExample = useCallback((text, modeId) => {
+    setPlanText(text);
+    if (modeId) {
+      setActiveMode(modeId);
+    }
+    const textarea = document.querySelector('.plan-textarea-stellar');
+    if (textarea) {
+      textarea.focus();
+      textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
+
   // Submit clarification: transitions immediately to scanning screen!
   const handleClarificationProvide = useCallback(async () => {
     if (!clarification) return;
@@ -1312,6 +1325,11 @@ export default function App() {
               </p>
             </div>
 
+            <ModeSelector
+              activeMode={activeMode}
+              onSelectMode={setActiveMode}
+            />
+
             <PlanInput
               planText={planText}
               setPlanText={setPlanText}
@@ -1322,9 +1340,9 @@ export default function App() {
               activeMode={activeMode}
             />
 
-            <ModeSelector
+            <TryAnExample
               activeMode={activeMode}
-              onSelectMode={setActiveMode}
+              onSelectExample={handleSelectExample}
             />
 
             <div className="action-meta-footer">
@@ -1336,19 +1354,36 @@ export default function App() {
         )}
 
         {/* ─────────────────────────────────────────────
-            2. SCANNING / LOADING VIEW (No AskNorthstar here)
+            2. SCANNING / LOADING VIEW
         ───────────────────────────────────────────── */}
-        {viewState === 'scanning' && (
+        {(viewState === 'scanning' || adoptionState.isAdopting) && (
           <IntelligenceScanning
             activeMode={scanningForMode || activeMode}
-            onComplete={handleScanningComplete}
+            onComplete={viewState === 'scanning' ? handleScanningComplete : undefined}
+            customTitle={adoptionState.isAdopting ? 'RECALCULATING YOUR PLAN' : undefined}
+            customSteps={
+              adoptionState.isAdopting
+                ? [
+                    'Applying adopted changes...',
+                    'Rechecking dependencies...',
+                    'Updating strategic analysis...',
+                    'Finalizing updated plan intelligence...',
+                  ]
+                : undefined
+            }
+            customSubtext={
+              adoptionState.isAdopting
+                ? 'Re-evaluating constraints, blind spots, and structural pathways'
+                : undefined
+            }
+            stepInterval={adoptionState.isAdopting ? 2500 : 450}
           />
         )}
 
         {/* ─────────────────────────────────────────────
             3. RESULTS VIEW (In-flow AskNorthstar inside)
         ───────────────────────────────────────────── */}
-        {viewState === 'results' && (
+        {viewState === 'results' && !adoptionState.isAdopting && (
           <ResultsShell
             planText={planText}
             planVersion={planVersion}

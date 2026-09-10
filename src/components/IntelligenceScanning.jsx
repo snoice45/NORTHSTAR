@@ -28,6 +28,8 @@ export default function IntelligenceScanning({
   onComplete,
   customTitle,
   customSteps,
+  customSubtext,
+  stepInterval = 450,
 }) {
   const [stepIndex, setStepIndex] = useState(0);
   const steps = customSteps || SCAN_STEPS[activeMode] || SCAN_STEPS[MODES.IMPROVE];
@@ -63,15 +65,19 @@ export default function IntelligenceScanning({
 
         return prev;
       });
-    }, 450);
+    }, stepInterval);
 
     return () => {
       clearInterval(interval);
       completed = true;
     };
-  }, [steps]);
+  }, [steps, stepInterval]);
 
-  const progressPercent = Math.round(((stepIndex + 1) / steps.length) * 100);
+  const progressPercent = onComplete
+    ? Math.round(((stepIndex + 1) / steps.length) * 100)
+    : stepIndex === steps.length - 1
+    ? 95
+    : Math.round(((stepIndex + 1) / steps.length) * 88);
 
   return (
     <div className="intelligence-scanning-overlay">
@@ -109,7 +115,7 @@ export default function IntelligenceScanning({
           </div>
 
           <div className="scanning-subtext">
-            Evaluating constraints, blind spots, and structural dependencies
+            {customSubtext || 'Evaluating constraints, blind spots, and structural dependencies'}
           </div>
         </div>
       </div>

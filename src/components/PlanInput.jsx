@@ -14,23 +14,7 @@ import {
 } from 'lucide-react';
 import { MODE_CONFIG } from './ModeSelector';
 
-const PRESETS = [
-  {
-    title: 'Career Switch to AI',
-    tag: 'CAREER',
-    text: 'I want to switch from Frontend Development to AI Systems Engineer in 9 months with a ₹15 lakh budget for courses/certifications, studying 15 hours per week while working full-time.'
-  },
-  {
-    title: 'B2B SaaS Launch',
-    tag: 'VENTURE',
-    text: 'Launching an enterprise compliance SaaS MVP in 4 months. Team of 2 founders, $50,000 savings runway, targeting mid-sized fintechs without external VC funding.'
-  },
-  {
-    title: 'Study Abroad Master\'s',
-    tag: 'ACADEMIC',
-    text: 'Applying for an MS in Data Science in Germany for Fall intake. Need to clear IELTS, save €11,000 for blocked account, and arrange university transcripts in 6 months.'
-  }
-];
+
 
 export default function PlanInput({
   planText,
@@ -197,6 +181,12 @@ export default function PlanInput({
 
   return (
     <div className="plan-input-section-stellar">
+      <div className="section-heading-stellar">
+        <Terminal size={14} className="heading-icon-static" />
+        <span>TELL NORTHSTAR WHAT YOU'RE PLANNING</span>
+        <div className="heading-line" />
+      </div>
+
       <div className="input-glass-panel">
         {/* Header */}
         <div className="input-panel-top-bar">
@@ -389,27 +379,6 @@ export default function PlanInput({
               <ArrowRight size={15} />
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Sample Presets */}
-      <div className="presets-container-stellar">
-        <span className="preset-label-stellar">
-          SAMPLE INITIATIVES:
-        </span>
-
-        <div className="preset-pill-list">
-          {PRESETS.map((preset, index) => (
-            <button
-              key={index}
-              type="button"
-              className="preset-pill-stellar"
-              onClick={() => setPlanText(preset.text)}
-            >
-              <span className="preset-vector-tag">{preset.tag}</span>
-              <span className="preset-vector-title">{preset.title}</span>
-            </button>
-          ))}
         </div>
       </div>
     </div>

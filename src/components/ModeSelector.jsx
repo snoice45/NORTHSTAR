@@ -49,33 +49,12 @@ export const MODE_CONFIG = {
   }
 };
 
-const MODE_EXAMPLES = [
-  {
-    modeId: MODES.IMPROVE,
-    lensName: 'Improve My Plan',
-    colorKey: 'improve',
-    summary: 'Audits unverified market assumptions & sequencing bottlenecks in a 9-month company expansion.'
-  },
-  {
-    modeId: MODES.ALTERNATIVES,
-    lensName: 'Explore Alternatives',
-    colorKey: 'alternatives',
-    summary: 'Discovers organic distribution & revenue-share routes when upfront capital is constrained.'
-  },
-  {
-    modeId: MODES.STRESSTEST,
-    lensName: 'Stress Test My Plan',
-    colorKey: 'stresstest',
-    summary: 'Simulates key vendor failures, runway contraction cascades, and early warning tripwires.'
-  }
-];
-
 export default function ModeSelector({ activeMode, onSelectMode }) {
   return (
     <div className="modes-selection-container">
       <div className="section-heading-stellar">
         <Compass size={14} className="heading-icon-static" />
-        <span>INTELLIGENCE LENSES</span>
+        <span>CHOOSE HOW NORTHSTAR SHOULD HELP</span>
         <div className="heading-line" />
       </div>
 
@@ -137,29 +116,6 @@ export default function ModeSelector({ activeMode, onSelectMode }) {
             </div>
           );
         })}
-      </div>
-
-      {/* Visual Examples Below Mode Selector */}
-      <div className="mode-examples-strip">
-        <div className="examples-header">
-          <span className="examples-title">CAPABILITIES IN ACTION:</span>
-        </div>
-        <div className="examples-grid">
-          {MODE_EXAMPLES.map((item) => (
-            <div
-              key={item.modeId}
-              className={`example-item ${activeMode === item.modeId ? 'highlighted-example' : ''}`}
-              onClick={() => onSelectMode(item.modeId)}
-              title={`Switch to ${item.lensName}`}
-            >
-              <div className="example-lens-tag">
-                <span className={`lens-indicator-dot dot-${item.colorKey}`} />
-                <span className="example-lens-name">{item.lensName}</span>
-              </div>
-              <p className="example-summary-text">{item.summary}</p>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
