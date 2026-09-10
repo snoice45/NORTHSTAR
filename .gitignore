@@ -3,4 +3,17 @@ dist/
 .env
 .env.*
 !.env.example
+.venv/
+__pycache__/
+*.pyc
 .DS_Store
+.adk/
+
+# Python secrets / credentials
+*.json
+!package.json
+!package-lock.json
+*.pem
+*.key
+credentials/
+secrets/
